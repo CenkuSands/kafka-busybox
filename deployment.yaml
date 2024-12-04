@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka-cli
+  namespace: kafka
+  labels:
+    app: kafka-cli
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kafka-cli
+  template:
+    metadata:
+      labels:
+        app: kafka-cli
+    spec:
+      containers:
+        - name: kafka-cli
+          image: quay.io/cen_ku/kafka-busybox:1.0 # Replace with your actual image name and tag
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/bash", "-c", "--"]
+          args: ["while true; do sleep 3600; done"]
+          resources:
+            limits:
+              cpu: "500m"
+              memory: "1Gi"
+            requests:
+              cpu: "20m"
+              memory: "256Mi"
+          env:
+            - name: JAVA_HOME
+              value: "/usr/lib/jvm/java-17-openjdk"
+            - name: KAFKA_HEAP_OPTS
+              value: "-Xms256m -Xmx512m" # Adjust heap size as needed
+          volumeMounts:
+            - name: kafka-cli-config
+              mountPath: "/opt/kafka/config/tools-log4j.properties"
+              subPath: "tools-log4j.properties"
+            - name: kafka-cli-config
+              mountPath: "/opt/kafka/config/client.properties"
+              subPath: "client.properties"
+      volumes:
+        - name: kafka-cli-config
+          configMap: 
+            name: kafka-cli-config
