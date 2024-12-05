@@ -27,7 +27,7 @@ reset_offsets() {
         --group "$group" \
         --topic "$topic:$partition" \
         --reset-offsets \
-        --to-offset \
+        --to-offset "$offset"\
         --"$mode"
 }
 
@@ -48,7 +48,7 @@ echo "You entered:"
 echo "  Consumer Group: $group"
 echo "  Topic: $topic"
 echo "  Partition: $partition"
-echo "  Offset: "$offset"
+echo "  Offset: $offset"
 echo "  Mode: $mode"
 echo ""
 
