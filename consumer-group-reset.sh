@@ -12,7 +12,8 @@ reset_offsets() {
     local group="$1"
     local topic="$2"
     local partition="$3"
-    local mode="$4"
+    local offset="$4"
+    local mode="$5"
 
     # Validate mode
     if [[ "$mode" != "execute" && "$mode" != "dry-run" ]]; then
@@ -21,11 +22,12 @@ reset_offsets() {
     fi
 
     # Kafka consumer group offset reset command
-    kafka-consumer-groups.sh --bootstrap-server <BROKER_URL> \
+    kafka-consumer-groups.sh --bootstrap-server 172.16.160.15:9093 \
+        --command-config /opt/kafka/config/client.properties \
         --group "$group" \
         --topic "$topic:$partition" \
         --reset-offsets \
-        --to-earliest \
+        --to-offset \
         --"$mode"
 }
 
@@ -37,6 +39,7 @@ echo "---------------------------------------"
 prompt_input "Enter the consumer group" group
 prompt_input "Enter the topic name" topic
 prompt_input "Enter the partition number" partition
+prompt_input "Enter the to-offset number" offset
 prompt_input "Choose mode ('execute' or 'dry-run')" mode
 
 # Confirm user input
@@ -45,6 +48,7 @@ echo "You entered:"
 echo "  Consumer Group: $group"
 echo "  Topic: $topic"
 echo "  Partition: $partition"
+echo "  Offset: "$offset"
 echo "  Mode: $mode"
 echo ""
 
@@ -56,7 +60,7 @@ if [[ "$confirm" != "yes" ]]; then
 fi
 
 # Perform the offset reset
-reset_offsets "$group" "$topic" "$partition" "$mode"
+reset_offsets "$group" "$topic" "$partition" "$offset" "$mode"
 
 # Completion message
 if [[ "$mode" == "execute" ]]; then
