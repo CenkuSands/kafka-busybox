@@ -1,5 +1,8 @@
 #!/bin/bash
 
+broker=172.16.160.15:9093
+commandconf=/opt/kafka/config/client.properties
+
 # Function to get user input
 prompt_input() {
     local prompt="$1"
@@ -22,12 +25,12 @@ reset_offsets() {
     fi
 
     # Kafka consumer group offset reset command
-    kafka-consumer-groups.sh --bootstrap-server 172.16.160.15:9093 \
-        --command-config /opt/kafka/config/client.properties \
+    kafka-consumer-groups.sh --bootstrap-server $broker \
+        --command-config $commandconf \
         --group "$group" \
         --topic "$topic:$partition" \
         --reset-offsets \
-        --to-offset "$offset"\
+        --to-offset "$offset" \
         --"$mode"
 }
 
