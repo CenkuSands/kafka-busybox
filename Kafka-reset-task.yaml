@@ -1,0 +1,40 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: kafka-reset-task
+spec:
+  params:
+    - name: broker
+      type: string
+      description: "Kafka broker address"
+    - name: command-config
+      type: string
+      description: "Path to Kafka client configuration"
+    - name: group
+      type: string
+      description: "Consumer group name"
+    - name: topic
+      type: string
+      description: "Topic name"
+    - name: partition
+      type: string
+      description: "Partition number"
+    - name: offset
+      type: string
+      description: "Offset to reset to"
+    - name: mode
+      type: string
+      description: "Execution mode (dry-run or execute)"
+  steps:
+    - name: reset-consumer-group
+      image: quay.io/your-namespace/kafka-busybox:latest
+      script: |
+        #!/bin/bash
+        export BROKER="$(params.broker)"
+        export COMMAND_CONFIG="$(params.command-config)"
+        /opt/scripts/consumer-group-reset.sh \
+          --group $(params.group) \
+          --topic $(params.topic) \
+          --partition $(params.partition) \
+          --offset $(params.offset) \
+          --mode $(params.mode)
