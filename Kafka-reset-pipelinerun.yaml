@@ -1,0 +1,22 @@
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  name: kafka-reset-pipelinerun
+spec:
+  pipelineRef:
+    name: kafka-reset-pipeline
+  params:
+    - name: broker
+      value: "172.16.160.15:9093"
+    - name: command-config
+      value: "/opt/kafka/config/client.properties"
+    - name: group
+      value: "my-consumer-group"
+    - name: topic
+      value: "my-topic"
+    - name: partition
+      value: "0"
+    - name: offset
+      value: "100"
+    - name: mode
+      value: "dry-run"
