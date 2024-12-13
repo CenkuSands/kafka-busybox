@@ -1,0 +1,39 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: kafka-reset-pipeline
+spec:
+  params:
+    - name: broker
+      type: string
+    - name: command-config
+      type: string
+    - name: group
+      type: string
+    - name: topic
+      type: string
+    - name: partition
+      type: string
+    - name: offset
+      type: string
+    - name: mode
+      type: string
+  tasks:
+    - name: reset-consumer-group-task
+      taskRef:
+        name: kafka-reset-task
+      params:
+        - name: broker
+          value: "$(params.broker)"
+        - name: command-config
+          value: "$(params.command-config)"
+        - name: group
+          value: "$(params.group)"
+        - name: topic
+          value: "$(params.topic)"
+        - name: partition
+          value: "$(params.partition)"
+        - name: offset
+          value: "$(params.offset)"
+        - name: mode
+          value: "$(params.mode)"
