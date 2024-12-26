@@ -11,55 +11,40 @@ spec:
       type: string
       description: "Schema version to validate (optional, default: latest)"
       default: "latest"
-  workspaces:
-    - name: schema-config
-      description: "Workspace for the ConfigMap containing the Schema Registry URL"
   steps:
-    - name: fetch-schema-registry-url
-      image: busybox
-      script: |
-        #!/bin/sh
-
-        # Read Schema Registry URL from ConfigMap
-        SCHEMA_REGISTRY_URL=$(cat /workspace/schema-config/schema_registry_url)
-
-        if [ -z "$SCHEMA_REGISTRY_URL" ]; then
-          echo "Error: Schema Registry URL is missing from ConfigMap."
-          exit 1
-        fi
-
-        echo "Using Schema Registry URL: $SCHEMA_REGISTRY_URL"
-        echo $SCHEMA_REGISTRY_URL > /workspace/schema-config/schema_registry_url_path
     - name: list-schema-versions
       image: curlimages/curl:latest
       script: |
         #!/bin/bash
 
-        # Get the Schema Registry URL from the previous step
-        SCHEMA_REGISTRY_URL=$(cat /workspace/schema-config/schema_registry_url_path)
+        echo "Fetching schema versions for topic: $(params.topic)"
 
         # List all schema versions for the topic
-        echo "Fetching schema versions for topic: $(params.topic)"
-        curl -s "$SCHEMA_REGISTRY_URL/subjects/$(params.topic)-value/versions" | jq .
+        curl -s -u $USERNAME:$PASSWORD "$SCHEMA_REGISTRY_URL/subjects/$(params.topic)-value/versions" | jq .
+
+        # Check if the request was successful
+        if [ $? -ne 0 ]; then
+            echo "Error: Unable to fetch schema versions for topic $(params.topic)."
+            exit 1
+        fi
     - name: fetch-and-validate-schema
       image: curlimages/curl:latest
       script: |
         #!/bin/bash
 
-        # Get the Schema Registry URL from the previous step
-        SCHEMA_REGISTRY_URL=$(cat /workspace/schema-config/schema_registry_url_path)
+        echo "Validating schema for topic: $(params.topic), version: $(params.version)"
 
         # Use the specified version or default to "latest"
         VERSION=$(params.version)
         if [ "$VERSION" == "latest" ]; then
-          VERSION=$(curl -s "$SCHEMA_REGISTRY_URL/subjects/$(params.topic)-value/versions/latest" | jq -r '.version')
+          VERSION=$(curl -s -u $USERNAME:$PASSWORD "$SCHEMA_REGISTRY_URL/subjects/$(params.topic)-value/versions/latest" | jq -r '.version')
         fi
 
         echo "Fetching schema for topic: $(params.topic), version: $VERSION"
 
         # Fetch the schema
         SCHEMA_URL="$SCHEMA_REGISTRY_URL/subjects/$(params.topic)-value/versions/$VERSION"
-        schema_output=$(curl -s $SCHEMA_URL)
+        schema_output=$(curl -s -u $USERNAME:$PASSWORD $SCHEMA_URL)
 
         # Check if schema was fetched successfully
         if [ $? -ne 0 ]; then
@@ -79,3 +64,19 @@ spec:
             echo "Schema validation failed: Invalid schema for topic $(params.topic), version $VERSION."
             exit 1
         fi
+  env:
+    - name: SCHEMA_REGISTRY_URL
+      valueFrom:
+        configMapKeyRef:
+          name: schema-config
+          key: schema_registry_url
+    - name: USERNAME
+      valueFrom:
+        secretKeyRef:
+          name: schema-registry-credentials
+          key: username
+    - name: PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: schema-registry-credentials
+          key: password
