@@ -13,7 +13,8 @@ spec:
       description: "Schema version to validate (optional, default: latest)"
       default: "latest"
   steps:
-    - computeResources: {}
+    - name: list-schema-versions
+      image: quay.apps.ocpqa.venetianqa.local/scl-qa/kafka-busybox:1.03
       env:
         - name: SCHEMA_REGISTRY_URL
           valueFrom:
@@ -30,8 +31,6 @@ spec:
             secretKeyRef:
               name: kafka-secret
               key: password
-      image: quay.apps.ocpqa.venetianqa.local/scl-qa/kafka-busybox:1.03              
-    - name: list-schema-versions
       script: |
         #!/bin/bash
 
@@ -47,6 +46,22 @@ spec:
         fi
     - name: fetch-and-validate-schema
       image: quay.apps.ocpqa.venetianqa.local/scl-qa/kafka-busybox:1.03
+      env:
+        - name: SCHEMA_REGISTRY_URL
+          valueFrom:
+            configMapKeyRef:
+              name: kafka-broker
+              key: schema-registry
+        - name: USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: kafka-secret
+              key: username
+        - name: PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: kafka-secret
+              key: password
       script: |
         #!/bin/bash
 
@@ -82,4 +97,3 @@ spec:
             echo "Schema validation failed: Invalid schema for topic $(params.topic), version $VERSION."
             exit 1
         fi
-
