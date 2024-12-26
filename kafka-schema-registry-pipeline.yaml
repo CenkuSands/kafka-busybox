@@ -1,0 +1,27 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: kafka-schema-validation-pipeline
+spec:
+  params:
+    - name: topic
+      type: string
+      description: "Kafka topic name"
+    - name: version
+      type: string
+      description: "Schema version to validate (optional, default: latest)"
+      default: "latest"
+  workspaces:
+    - name: schema-config
+  tasks:
+    - name: validate-schema
+      taskRef:
+        name: kafka-schema-validation-task
+      params:
+        - name: topic
+          value: "$(params.topic)"
+        - name: version
+          value: "$(params.version)"
+      workspaces:
+        - name: schema-config
+          workspace: schema-config
