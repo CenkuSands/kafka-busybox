@@ -1,7 +1,8 @@
-apiVersion: tekton.dev/v1beta1
+apiVersion: tekton.dev/v1
 kind: Task
 metadata:
   name: kafka-schema-validation-task
+  namespace: openshift-pipelines
 spec:
   params:
     - name: topic
@@ -12,15 +13,32 @@ spec:
       description: "Schema version to validate (optional, default: latest)"
       default: "latest"
   steps:
+    - computeResources: {}
+      env:
+        - name: SCHEMA_REGISTRY_URL
+          valueFrom:
+            configMapKeyRef:
+              name: kafka-broker
+              key: schema-registry
+        - name: USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: kafka-secret
+              key: username
+        - name: PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: kafka-secret
+              key: password
+      image: quay.apps.ocpqa.venetianqa.local/scl-qa/kafka-busybox:1.03              
     - name: list-schema-versions
-      image: curlimages/curl:latest
       script: |
         #!/bin/bash
 
         echo "Fetching schema versions for topic: $(params.topic)"
 
         # List all schema versions for the topic
-        curl -s -u $USERNAME:$PASSWORD "$SCHEMA_REGISTRY_URL/subjects/$(params.topic)-value/versions" | jq .
+        curl -s -k -u $USERNAME:$PASSWORD "$SCHEMA_REGISTRY_URL/subjects/$(params.topic)-value/versions" | jq .
 
         # Check if the request was successful
         if [ $? -ne 0 ]; then
@@ -28,7 +46,7 @@ spec:
             exit 1
         fi
     - name: fetch-and-validate-schema
-      image: curlimages/curl:latest
+      image: quay.apps.ocpqa.venetianqa.local/scl-qa/kafka-busybox:1.03
       script: |
         #!/bin/bash
 
@@ -37,14 +55,14 @@ spec:
         # Use the specified version or default to "latest"
         VERSION=$(params.version)
         if [ "$VERSION" == "latest" ]; then
-          VERSION=$(curl -s -u $USERNAME:$PASSWORD "$SCHEMA_REGISTRY_URL/subjects/$(params.topic)-value/versions/latest" | jq -r '.version')
+          VERSION=$(curl -s -k -u $USERNAME:$PASSWORD "$SCHEMA_REGISTRY_URL/subjects/$(params.topic)-value/versions/latest" | jq -r '.version')
         fi
 
         echo "Fetching schema for topic: $(params.topic), version: $VERSION"
 
         # Fetch the schema
         SCHEMA_URL="$SCHEMA_REGISTRY_URL/subjects/$(params.topic)-value/versions/$VERSION"
-        schema_output=$(curl -s -u $USERNAME:$PASSWORD $SCHEMA_URL)
+        schema_output=$(curl -s -k -u $USERNAME:$PASSWORD $SCHEMA_URL)
 
         # Check if schema was fetched successfully
         if [ $? -ne 0 ]; then
@@ -64,19 +82,4 @@ spec:
             echo "Schema validation failed: Invalid schema for topic $(params.topic), version $VERSION."
             exit 1
         fi
-  env:
-    - name: SCHEMA_REGISTRY_URL
-      valueFrom:
-        configMapKeyRef:
-          name: schema-config
-          key: schema_registry_url
-    - name: USERNAME
-      valueFrom:
-        secretKeyRef:
-          name: schema-registry-credentials
-          key: username
-    - name: PASSWORD
-      valueFrom:
-        secretKeyRef:
-          name: schema-registry-credentials
-          key: password
+
