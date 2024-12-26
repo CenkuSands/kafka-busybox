@@ -2,6 +2,7 @@ apiVersion: tekton.dev/v1beta1
 kind: Pipeline
 metadata:
   name: kafka-schema-validation-pipeline
+  namespace: openshift-pipelines
 spec:
   params:
     - name: topic
@@ -11,8 +12,6 @@ spec:
       type: string
       description: "Schema version to validate (optional, default: latest)"
       default: "latest"
-  workspaces:
-    - name: schema-config
   tasks:
     - name: validate-schema
       taskRef:
@@ -22,6 +21,3 @@ spec:
           value: "$(params.topic)"
         - name: version
           value: "$(params.version)"
-      workspaces:
-        - name: schema-config
-          workspace: schema-config
